@@ -67,3 +67,34 @@ jobs:
           echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Image**: ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Pull command**: \`docker pull ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+
+  deploy-to-ec2:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Pull latest image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/simple-java-app:latest
+            
+            # Stop and remove old container
+            docker stop simple-java-app 2>/dev/null || true
+            docker rm simple-java-app 2>/dev/null || true
+            
+            # Run new container
+            docker run -d \
+              --name simple-java-app \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              ${{ secrets.DOCKER_USERNAME }}/simple-java-app:latest
+            
+            # Verify deployment
+            sleep 5
+            docker ps | grep simple-java-app
+            curl -f http://localhost:8080 || echo "App is starting..."
