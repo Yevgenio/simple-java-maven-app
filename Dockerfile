@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM maven:3.8-openjdk-11 AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Runtime stage
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:21-jre
 
 # Set working directory
 WORKDIR /app
